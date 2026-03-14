@@ -11,12 +11,12 @@ class TaxCalculator(App):
         layout: horizontal;
     }
     VerticalScroll {
-        width: 35%;
+        width: 30%;
         padding: 1;
         border: solid green;
     }
     #results-pane {
-        width: 65%;
+        width: 70%;
         padding: 1;
         border: solid blue;
     }
@@ -45,6 +45,7 @@ class TaxCalculator(App):
     is_us_dividend = reactive(True)
     is_eu_trading = reactive(False)
     client_withholds = reactive(True)
+    llc_expenses = reactive(1200.0)
 
     # BVI Specific Reactive variables
     bvi_expenses = reactive(2500.0)
@@ -58,13 +59,12 @@ class TaxCalculator(App):
     STATUTORY_DEDUCTION_TRADING = 0.10
     MAX_SOC_SEC_CAP = 2352.0  # Using the later 2026 figure
     SOC_SEC_RATE = 0.278
-    LLC_EXPENSES = 1200.0
 
     def compose(self) -> ComposeResult:
         yield Header()
         with Container():
             with VerticalScroll():
-                yield Label("VARIABLE INPUTS (GENERAL)")
+                yield Label("REVENUE & INCOME (COMMON)")
                 yield Label("Monthly MD Salary (€)")
                 yield Input(value=str(self.md_salary), id="md_salary", type="number")
                 yield Label("Annual Consulting Revenue (€)")
@@ -76,7 +76,11 @@ class TaxCalculator(App):
                 yield Label("Annual Trading Profits (€)")
                 yield Input(value=str(self.trading_profits), id="trading_profits", type="number")
                 
-                yield Label("VARIABLE INPUTS (BVI)")
+                yield Label("WYOMING LLC PARAMETERS")
+                yield Label("LLC Annual Expenses (€)")
+                yield Input(value=str(self.llc_expenses), id="llc_expenses", type="number")
+
+                yield Label("BVI COMPANY PARAMETERS")
                 yield Label("BVI Annual Expenses (€)")
                 yield Input(value=str(self.bvi_expenses), id="bvi_expenses", type="number")
                 yield Label("BVI Dividend Payout Ratio (%)")
@@ -93,9 +97,8 @@ class TaxCalculator(App):
                 yield Static(f"• Dividend Tax Rate: {self.BG_DIVIDEND_TAX*100}%")
                 yield Static(f"• Social Security Cap: €{self.MAX_SOC_SEC_CAP}/mo")
                 yield Static(f"• Consulting Deduction: {self.STATUTORY_DEDUCTION_CONSULTING*100}%")
-                yield Static(f"• LLC Annual Expenses: €{self.LLC_EXPENSES}")
 
-            with Vertical(id="results-pane"):
+            with VerticalScroll(id="results-pane"):
                 yield Label("CALCULATION RESULTS: LLC vs BVI")
                 yield DataTable(id="results-table")
                 yield Static(id="explanation")
@@ -120,6 +123,8 @@ class TaxCalculator(App):
                 self.bg_company_dividends = val
             elif event.input.id == "trading_profits":
                 self.trading_profits = val
+            elif event.input.id == "llc_expenses":
+                self.llc_expenses = val
             elif event.input.id == "bvi_expenses":
                 self.bvi_expenses = val
             elif event.input.id == "bvi_payout_ratio":
@@ -165,7 +170,7 @@ class TaxCalculator(App):
 
         # Totals LLC
         total_tax_llc = soc_sec_due_llc + consulting_tax_liability_llc + total_div_tax_llc + trading_tax_due_llc
-        total_expenses_llc = self.LLC_EXPENSES
+        total_expenses_llc = self.llc_expenses
         net_wealth_llc = total_gross - total_tax_llc - total_expenses_llc
         effective_rate_llc = (total_tax_llc / total_gross) * 100 if total_gross > 0 else 0
 
