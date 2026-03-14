@@ -1,6 +1,5 @@
-def main():
-    print("Hello from llc-tax-model!")
-
+from calculator import TaxCalculator
 
 if __name__ == "__main__":
-    main()
+    app = TaxCalculator()
+    app.run()
