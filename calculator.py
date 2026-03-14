@@ -49,6 +49,7 @@ class TaxCalculator(App):
     # BVI Specific Reactive variables
     bvi_expenses = reactive(2500.0)
     bvi_payout_ratio = reactive(0.0) # Percentage 0-100
+    solve_management_risk = reactive(True)
 
     # Constants (2026 Euro)
     BG_INCOME_TAX = 0.10
@@ -85,6 +86,7 @@ class TaxCalculator(App):
                 yield Checkbox("US Sourced Dividends (15% US Withholding)", value=self.is_us_dividend, id="is_us_dividend")
                 yield Checkbox("EU/EEA Regulated Trading (0% Tax)", value=self.is_eu_trading, id="is_eu_trading")
                 yield Checkbox("BG Client Withholds 10%", value=self.client_withholds, id="client_withholds")
+                yield Checkbox("BVI Management Risk Solved (0% BG Corp Tax)", value=self.solve_management_risk, id="solve_management_risk")
 
                 yield Label("FIXED INFORMATION (2026)")
                 yield Static(f"• Income Tax Rate: {self.BG_INCOME_TAX*100}%")
@@ -133,6 +135,8 @@ class TaxCalculator(App):
             self.is_eu_trading = event.value
         elif event.checkbox.id == "client_withholds":
             self.client_withholds = event.value
+        elif event.checkbox.id == "solve_management_risk":
+            self.solve_management_risk = event.value
         self.update_calculations()
 
     def update_calculations(self) -> None:
@@ -167,32 +171,43 @@ class TaxCalculator(App):
 
 
         # --- MODEL B: BVI COMPANY (Corporate Blocker) ---
-        # Assuming "Effective Management" risk is completely solved, yielding 0% BG Corporate Tax.
-        
-        # Corporate level taxes & costs
-        corporate_tax_bvi = 0.0
-        soc_sec_due_bvi = 0.0 # Corporate revenue doesn't trigger BG Social Security
+        # "Place of Effective Management" (POEM) Logic
         
         # US/Intl Dividends Withholding at source (still happens to the BVI)
         us_withholding_bvi = self.dividends * 0.15 if self.is_us_dividend else 0.0
         # BG Dividends Withheld at source
         bg_div_tax_withheld_bvi = self.bg_company_dividends * self.BG_DIVIDEND_TAX
         
-        # Pre-Distribution Corporate Net
-        gross_retained_bvi = total_gross - us_withholding_bvi - bg_div_tax_withheld_bvi - self.bvi_expenses
+        # Pre-Tax Corporate Net
+        pre_tax_profit_bvi = total_gross - us_withholding_bvi - bg_div_tax_withheld_bvi - self.bvi_expenses
+        
+        # Corporate level taxes
+        corporate_tax_bvi = 0.0 if self.solve_management_risk else max(0, pre_tax_profit_bvi * self.BG_INCOME_TAX)
+        soc_sec_due_bvi = 0.0 # Corporate revenue doesn't trigger BG Social Security
+        
+        # Net Profit Available for Distribution
+        net_retained_bvi = pre_tax_profit_bvi - corporate_tax_bvi
         
         # Distribution Logic
-        payout_amount_bvi = max(0, gross_retained_bvi * (self.bvi_payout_ratio / 100.0))
+        payout_amount_bvi = max(0, net_retained_bvi * (self.bvi_payout_ratio / 100.0))
         bg_dividend_tax_bvi = payout_amount_bvi * self.BG_DIVIDEND_TAX
         
         # Totals BVI
-        total_tax_bvi = us_withholding_bvi + bg_div_tax_withheld_bvi + bg_dividend_tax_bvi
+        total_tax_bvi = us_withholding_bvi + bg_div_tax_withheld_bvi + corporate_tax_bvi + bg_dividend_tax_bvi
         total_expenses_bvi = self.bvi_expenses
-        trapped_in_bvi = gross_retained_bvi - payout_amount_bvi
+        trapped_in_bvi = max(0, net_retained_bvi - payout_amount_bvi)
         personal_wealth_bvi = payout_amount_bvi - bg_dividend_tax_bvi
         total_net_wealth_bvi = trapped_in_bvi + personal_wealth_bvi
         effective_rate_bvi = (total_tax_bvi / total_gross) * 100 if total_gross > 0 else 0
 
+
+        # --- Privacy Logic ---
+        privacy_llc = "HIGH (Shielded)"
+        privacy_bvi = "HIGH (Shielded)" if self.solve_management_risk else "MODERATE (POEM Trail)"
+
+        if self.bg_company_dividends > 0:
+            privacy_llc = "[red]LOW (UBO Disclosed)[/red]"
+            privacy_bvi = "[red]LOW (UBO Disclosed)[/red]"
 
         # --- Update Table ---
         table = self.query_one("#results-table", DataTable)
@@ -201,13 +216,15 @@ class TaxCalculator(App):
             ("Gross Revenue", f"{total_gross:,.2f}", f"{total_gross:,.2f}", "Total structure inflows"),
             ("Fixed Expenses", f"{total_expenses_llc:,.2f}", f"{total_expenses_bvi:,.2f}", "Agent / ES Filings / CPA"),
             ("Social Security", f"{soc_sec_due_llc:,.2f}", f"{soc_sec_due_bvi:,.2f}", "LLC flows through to individual"),
-            ("Consulting Tax (BG)", f"{consulting_tax_liability_llc:,.2f}", "0.00", "LLC gets 25% deduction; BVI is 0% corp"),
-            ("Trading Tax (BG)", f"{trading_tax_due_llc:,.2f}", "0.00", "LLC gets 10% deduction; BVI is 0% corp"),
-            ("Source Div Withholding", f"{total_div_tax_llc:,.2f}", f"{us_withholding_bvi + bg_div_tax_withheld_bvi:,.2f}", "US/BG source taxes applying to entity"),
+            ("Consulting Tax (BG)", f"{consulting_tax_liability_llc:,.2f}", "0.00", "LLC gets 25% deduction"),
+            ("BVI Corp Tax (BG)", "0.00", f"{corporate_tax_bvi:,.2f}", "10% CIT if Sofia-managed (POEM)"),
+            ("Trading Tax (BG)", f"{trading_tax_due_llc:,.2f}", "0.00", "LLC gets 10% deduction"),
+            ("Source Div Withholding", f"{total_div_tax_llc:,.2f}", f"{us_withholding_bvi + bg_div_tax_withheld_bvi:,.2f}", "Source taxes on dividends"),
             ("Dividend Payout to BG", "N/A (Flow)", f"{payout_amount_bvi:,.2f}", f"BVI Payout Ratio: {self.bvi_payout_ratio}%"),
-            ("BG Dividend Tax", "0.00", f"{bg_dividend_tax_bvi:,.2f}", "5% Tax on distributed BVI profits"),
-            ("Total Tax Burden", f"{total_tax_llc:,.2f}", f"{total_tax_bvi:,.2f}", f"Combined tax paid/withheld"),
+            ("BG Dividend Tax", "0.00", f"{bg_dividend_tax_bvi:,.2f}", "5% Tax on distributed profits"),
+            ("Total Tax Burden", f"{total_tax_llc:,.2f}", f"{total_tax_bvi:,.2f}", "Combined tax paid/withheld"),
             ("Net Tax Rate (%)", f"{effective_rate_llc:.2f}%", f"{effective_rate_bvi:.2f}%", "Total Tax / Total Gross"),
+            ("Anonymity Level", privacy_llc, privacy_bvi, "Public Registry Status"),
             ("Wealth: Personal", f"{net_wealth_llc:,.2f}", f"{personal_wealth_bvi:,.2f}", "Post-tax wealth in BG account"),
             ("Wealth: Corporate", "0.00", f"{trapped_in_bvi:,.2f}", "Untaxed funds retained in BVI"),
             ("TOTAL NET WEALTH", f"{net_wealth_llc:,.2f}", f"{total_net_wealth_bvi:,.2f}", "Total wealth across all accounts")
@@ -217,19 +234,25 @@ class TaxCalculator(App):
         winner = "Wyoming LLC" if net_wealth_llc > total_net_wealth_bvi else "BVI Company"
         difference = abs(net_wealth_llc - total_net_wealth_bvi)
 
-        privacy_warning = ""
+        privacy_analysis = f"\n\n[b]PRIVACY & ANONYMITY ANALYSIS:[/b]\n"
         if self.bg_company_dividends > 0:
-            privacy_warning = "\n\n[red][b]PRIVACY ALERT:[/b][/red] Owning a BG subsidiary triggers [b]mandatory UBO disclosure[/b] in the BG Commercial Register, exposing the structure."
+            privacy_analysis += "[red][b]CRITICAL BREACH:[/b][/red] Owning a BG subsidiary triggers mandatory [b]UBO disclosure[/b]. Your name will be publicly linked to this structure in the Sofia Commercial Register, breaking the Wyoming shield."
+        else:
+            privacy_analysis += f"• [green]Wyoming LLC:[/green] {privacy_llc}. No public member list; only the Registered Agent is visible.\n"
+            privacy_analysis += f"• [green]BVI Company:[/green] {privacy_bvi}. " + ("POEM risk solved." if self.solve_management_risk else "[yellow]Warning:[/yellow] Management from Sofia creates a local tax trail linking you to the BVI entity.")
+
+        management_risk_text = "[green]BVI management is non-resident.[/green]" if self.solve_management_risk else "[red]POEM TRAP:[/red] Management is Sofia-based. 10% CIT applies first, then 5% Dividend Tax."
 
         explanation = self.query_one("#explanation", Static)
         explanation.update(
             f"[b]STRATEGIC ANALYSIS[/b]\n\n"
-            f"[b]Optimal Structure (Current Inputs):[/b] [green]{winner}[/green] by €{difference:,.2f}\n\n"
+            f"[b]Optimal Structure (Current Inputs):[/b] [green]{winner}[/green] by €{difference:,.2f}\n"
+            f"[b]Management Status:[/b] {management_risk_text}\n\n"
             f"1. [b]The Compounding Advantage:[/b] By keeping the BVI Payout Ratio at {self.bvi_payout_ratio}%, you trap €{trapped_in_bvi:,.2f} in a 0% tax environment for reinvestment. Wyoming forces immediate taxation on all revenue.\n"
             f"2. [b]The Consulting Penalty:[/b] Wyoming benefits from the 25% statutory deduction on consulting revenue (€{consulting_tax_liability_llc:,.2f} tax vs 5% on pure distribution). The BVI lacks this personal tax shield.\n"
             f"3. [b]The Social Security Factor:[/b] Your MD Salary shields €{self.md_salary:,.2f}/mo. You pay €{soc_sec_due_llc:,.2f} in Wyoming vs €0 in BVI.\n"
             f"4. [b]Compliance Drag:[/b] The BVI costs €{total_expenses_bvi:,.2f} vs Wyoming's €{total_expenses_llc:,.2f}, eroding small tax advantages."
-            f"{privacy_warning}"
+            f"{privacy_analysis}"
         )
 
 if __name__ == "__main__":
