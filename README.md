@@ -1,6 +1,6 @@
-# Wyoming LLC Tax Model (Bulgarian Resident)
+# Global Entity Tax Model (Bulgarian Resident)
 
-This is a TUI-based tax calculator for a Bulgarian resident operating via a Wyoming LLC. 
+This is a TUI-based tax calculator comparing a Wyoming LLC vs. a BVI Company for a Bulgarian resident. 
 
 ## Setup
 
