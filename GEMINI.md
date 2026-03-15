@@ -19,10 +19,11 @@
 
 ## Technical Architecture
 - **`main.py`**: Application entry point.
-- **`engine.py`**: Stateless core logic. Calculates taxes based on two primary tracks:
+- **`engine.py`**: Stateless core logic. Uses a mutable `TaxInputs` dataclass as the single source of truth for entity parameters. Calculates taxes based on two primary tracks:
     - **Strategy I (Consulting)**: Service contract logic with social security shields.
     - **Strategy II (Subsidiary)**: Ownership logic with UBO disclosure triggers.
-- **`calculator.py`**: Interactive TUI (Textual). Restructured to group inputs and results by strategic layer (Consulting vs. Subsidiary).
+    - **Consolidated Logic**: Source-level withholdings are calculated once and applied to both models to ensure consistency.
+- **`calculator.py`**: Interactive TUI (Textual). Uses dynamic introspection (`setattr`/`hasattr`) to map UI inputs directly to the `TaxInputs` state object, eliminating boilerplate state sync code.
 - **`pyproject.toml`**: Dependency management (uv).
 
 ## Strategic Logic Protocols

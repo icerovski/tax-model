@@ -1,7 +1,6 @@
 from textual.app import App, ComposeResult
 from textual.containers import Container, VerticalScroll
 from textual.widgets import Header, Footer, Input, Label, Static, Checkbox, DataTable
-from textual.reactive import reactive
 
 from engine import (
     TaxInputs, TaxResults, calculate_taxes,
@@ -47,23 +46,10 @@ class TaxCalculator(App):
     }
     """
 
-    # Reactive variables tied to inputs
-    md_salary = reactive(5000.0)
-    consulting_rev = reactive(150000.0)
-    dividends = reactive(20000.0)
-    bg_company_dividends = reactive(0.0)
-    trading_profits = reactive(50000.0)
-    is_us_dividend = reactive(True)
-    is_eu_trading = reactive(False)
-    client_withholds = reactive(True)
-    llc_expenses = reactive(1200.0)
-    bvi_expenses = reactive(2500.0)
-    bvi_payout_ratio = reactive(0.0)
-    solve_management_risk = reactive(True)
-
-    # Dynamic Policy parameters
-    max_soc_sec_cap = reactive(MAX_SOC_SEC_CAP)
-    is_bg_tax_resident = reactive(True)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Single Source of Truth
+        self.inputs = TaxInputs()
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -71,34 +57,34 @@ class TaxCalculator(App):
             with VerticalScroll():
                 yield Label("I. CONSULTING CONTRACT (BG CLIENT)")
                 yield Label("Annual Consulting Revenue (€)")
-                yield Input(value=str(self.consulting_rev), id="consulting_rev", type="number")
-                yield Checkbox("BG Client Withholds 10% (LLC Credit)", value=self.client_withholds, id="client_withholds")
-                yield Checkbox("BVI Management Risk Solved (0% BG CIT)", value=self.solve_management_risk, id="solve_management_risk")
+                yield Input(value=str(self.inputs.consulting_rev), id="consulting_rev", type="number")
+                yield Checkbox("BG Client Withholds 10% (LLC Credit)", value=self.inputs.client_withholds, id="client_withholds")
+                yield Checkbox("BVI Management Risk Solved (0% BG CIT)", value=self.inputs.solve_management_risk, id="solve_management_risk")
                 
                 yield Label("II. BULGARIAN SUBSIDIARY")
                 yield Label("Annual BG Company Dividends (€)")
-                yield Input(value=str(self.bg_company_dividends), id="bg_company_dividends", type="number")
+                yield Input(value=str(self.inputs.bg_company_dividends), id="bg_company_dividends", type="number")
 
                 yield Label("III. GLOBAL INVESTMENTS & PERSONAL")
                 yield Label("Monthly MD Salary (€) (Tax Shield)")
-                yield Input(value=str(self.md_salary), id="md_salary", type="number")
+                yield Input(value=str(self.inputs.md_salary), id="md_salary", type="number")
                 yield Label("Annual Dividends (US/Intl) (€)")
-                yield Input(value=str(self.dividends), id="dividends", type="number")
-                yield Checkbox("US Sourced Dividends (15% US Tax)", value=self.is_us_dividend, id="is_us_dividend")
+                yield Input(value=str(self.inputs.dividends), id="dividends", type="number")
+                yield Checkbox("US Sourced Dividends (15% US Tax)", value=self.inputs.is_us_dividend, id="is_us_dividend")
                 yield Label("Annual Trading Profits (€)")
-                yield Input(value=str(self.trading_profits), id="trading_profits", type="number")
-                yield Checkbox("EU/EEA Regulated (0% Tax)", value=self.is_eu_trading, id="is_eu_trading")
+                yield Input(value=str(self.inputs.trading_profits), id="trading_profits", type="number")
+                yield Checkbox("EU/EEA Regulated (0% Tax)", value=self.inputs.is_eu_trading, id="is_eu_trading")
 
                 yield Label("IV. STRUCTURE OVERHEAD & POLICY")
                 yield Label("LLC Annual Expenses (€)")
-                yield Input(value=str(self.llc_expenses), id="llc_expenses", type="number")
+                yield Input(value=str(self.inputs.llc_expenses), id="llc_expenses", type="number")
                 yield Label("BVI Annual Expenses (€)")
-                yield Input(value=str(self.bvi_expenses), id="bvi_expenses", type="number")
+                yield Input(value=str(self.inputs.bvi_expenses), id="bvi_expenses", type="number")
                 yield Label("BVI Dividend Payout Ratio (%)")
-                yield Input(value=str(self.bvi_payout_ratio), id="bvi_payout_ratio", type="number")
+                yield Input(value=str(self.inputs.bvi_payout_ratio), id="bvi_payout_ratio", type="number")
                 yield Label("SOC Security Cap (€ / mo)")
-                yield Input(value=str(self.max_soc_sec_cap), id="max_soc_sec_cap", type="number")
-                yield Checkbox("BG Tax Resident", value=self.is_bg_tax_resident, id="is_bg_tax_resident")
+                yield Input(value=str(self.inputs.max_soc_sec_cap), id="max_soc_sec_cap", type="number")
+                yield Checkbox("BG Tax Resident", value=self.inputs.is_bg_tax_resident, id="is_bg_tax_resident")
 
                 yield Label("FIXED POLICY INFORMATION (2026)")
                 yield Static(f"• BG Income Tax: {BG_INCOME_TAX*100:.0f}%")
@@ -121,55 +107,27 @@ class TaxCalculator(App):
         self.update_calculations()
 
     def on_input_changed(self, event: Input.Changed) -> None:
+        if not event.input.id:
+            return
         try:
             val = float(event.value) if event.value else 0.0
-            if event.input.id == "md_salary":
-                self.md_salary = val
-            elif event.input.id == "consulting_rev":
-                self.consulting_rev = val
-            elif event.input.id == "dividends":
-                self.dividends = val
-            elif event.input.id == "bg_company_dividends":
-                self.bg_company_dividends = val
-            elif event.input.id == "trading_profits":
-                self.trading_profits = val
-            elif event.input.id == "llc_expenses":
-                self.llc_expenses = val
-            elif event.input.id == "bvi_expenses":
-                self.bvi_expenses = val
-            elif event.input.id == "bvi_payout_ratio":
-                self.bvi_payout_ratio = max(0.0, min(100.0, val))
-            elif event.input.id == "max_soc_sec_cap":
-                self.max_soc_sec_cap = max(0.0, val)
-            self.update_calculations()
+            # Basic validation for certain fields
+            if event.input.id == "bvi_payout_ratio":
+                val = max(0.0, min(100.0, val))
+            
+            if hasattr(self.inputs, event.input.id):
+                setattr(self.inputs, event.input.id, val)
+                self.update_calculations()
         except ValueError:
             pass
 
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
-        attr_name = event.checkbox.id
-        if attr_name and hasattr(self, attr_name):
-            setattr(self, attr_name, event.value)
+        if event.checkbox.id and hasattr(self.inputs, event.checkbox.id):
+            setattr(self.inputs, event.checkbox.id, event.value)
             self.update_calculations()
 
     def update_calculations(self) -> None:
-        inputs = TaxInputs(
-            md_salary=self.md_salary,
-            consulting_rev=self.consulting_rev,
-            dividends=self.dividends,
-            bg_company_dividends=self.bg_company_dividends,
-            trading_profits=self.trading_profits,
-            is_us_dividend=self.is_us_dividend,
-            is_eu_trading=self.is_eu_trading,
-            client_withholds=self.client_withholds,
-            llc_expenses=self.llc_expenses,
-            bvi_expenses=self.bvi_expenses,
-            bvi_payout_ratio=self.bvi_payout_ratio,
-            solve_management_risk=self.solve_management_risk,
-            max_soc_sec_cap=self.max_soc_sec_cap,
-            is_bg_tax_resident=self.is_bg_tax_resident
-        )
-        
-        results = calculate_taxes(inputs)
+        results = calculate_taxes(self.inputs)
         self._update_ui(results)
 
     def _update_ui(self, results: TaxResults) -> None:
@@ -182,23 +140,23 @@ class TaxCalculator(App):
         
         table.add_rows([
             ("[b]STRATEGY I: CONSULTING[/b]", "", "", ""),
-            ("  • Gross Revenue", f"{self.consulting_rev:,.2f}", f"{self.consulting_rev:,.2f}", privacy_consulting),
+            ("  • Gross Revenue", f"{self.inputs.consulting_rev:,.2f}", f"{self.inputs.consulting_rev:,.2f}", privacy_consulting),
             ("  • Consulting Tax (BG)", f"-{results.consulting_tax_llc:,.2f}", "0.00", "LLC personal tax"),
             ("  • Social Security", f"-{results.soc_sec_due_llc:,.2f}", "0.00", "LLC personal cost"),
             ("  • Corp Tax (Sofia-POEM)", "0.00", f"-{results.consulting_cit_bvi:,.2f}", "BVI Sofia-resident risk"),
             
             ("[b]STRATEGY II: SUBSIDIARY[/b]", "", "", ""),
-            ("  • Dividend Gross", f"{self.bg_company_dividends:,.2f}", f"{self.bg_company_dividends:,.2f}", privacy_subsidiary),
+            ("  • Dividend Gross", f"{self.inputs.bg_company_dividends:,.2f}", f"{self.inputs.bg_company_dividends:,.2f}", privacy_subsidiary),
             ("  • BG Source WHT (5%)", f"-{results.bg_subsidiary_wht_llc:,.2f}", f"-{results.bg_subsidiary_wht_bvi:,.2f}", "Taxed at source"),
             
             ("[b]GLOBAL / PASSIVE[/b]", "", "", ""),
-            ("  • Trading Profits", f"{self.trading_profits:,.2f}", f"{self.trading_profits:,.2f}", "Investment layer"),
+            ("  • Trading Profits", f"{self.inputs.trading_profits:,.2f}", f"{self.inputs.trading_profits:,.2f}", "Investment layer"),
             ("  • Trading Tax", f"-{results.trading_tax_llc:,.2f}", "0.00", "10% on non-EEA profit"),
-            ("  • Intl Dividends (Net)", f"{self.dividends:,.2f}", f"{self.dividends:,.2f}", "Pre-entity taxes"),
+            ("  • Intl Dividends (Net)", f"{self.inputs.dividends:,.2f}", f"{self.inputs.dividends:,.2f}", "Pre-entity taxes"),
             ("  • Intl Div Tax (BG)", f"-{results.intl_div_tax_llc:,.2f}", "0.00", "BG personal tax"),
             
             ("[b]ENTITY SUMMARY[/b]", "", "", ""),
-            ("  • Annual Expenses", f"-{self.llc_expenses:,.2f}", f"-{self.bvi_expenses:,.2f}", "Fixed overhead"),
+            ("  • Annual Expenses", f"-{self.inputs.llc_expenses:,.2f}", f"-{self.inputs.bvi_expenses:,.2f}", "Fixed overhead"),
             ("  • BVI Dist. Tax (5%)", "N/A", f"-{results.bg_dividend_tax_bvi:,.2f}", "Personal tax on payout"),
             ("  • Net Tax Rate (%)", f"{results.effective_rate_llc:.2f}%", f"{results.effective_rate_bvi:.2f}%", "Total Tax / Gross"),
             ("  • TOTAL NET WEALTH", f"[b]{results.net_wealth_llc:,.2f}[/b]", f"[b]{results.total_net_wealth_bvi:,.2f}[/b]", "Combined net Retained"),

@@ -10,9 +10,9 @@ MAX_SOC_SEC_CAP = 2352.0  # Monthly Cap
 SOC_SEC_RATE = 0.278
 US_WITHHOLDING_RATE = 0.15
 
-@dataclass(frozen=True)
+@dataclass
 class TaxInputs:
-    md_salary: float = 5000.0
+    md_salary: float = 11000.0  # Monthly MD Salary (Tax Shield)
     consulting_rev: float = 150000.0
     dividends: float = 0.0
     bg_company_dividends: float = 0.0
@@ -25,7 +25,7 @@ class TaxInputs:
     bvi_payout_ratio: float = 0.0  # Percentage 0-100
     solve_management_risk: bool = True
 
-    # Optional policy parameters (defaults keep existing behavior)
+    # Optional policy parameters
     bg_income_tax: float = BG_INCOME_TAX
     bg_dividend_tax: float = BG_DIVIDEND_TAX
     statutory_deduction_consulting: float = STATUTORY_DEDUCTION_CONSULTING
@@ -34,6 +34,7 @@ class TaxInputs:
     soc_sec_rate: float = SOC_SEC_RATE
     us_withholding_rate: float = US_WITHHOLDING_RATE
     is_bg_tax_resident: bool = True
+
 
 @dataclass(frozen=True)
 class TaxResults:
@@ -71,12 +72,19 @@ class TaxResults:
     effective_rate_bvi: float
 
 def calculate_taxes(inputs: TaxInputs) -> TaxResults:
-    # GROSS CALCULATION
+    # 1. SHARED SOURCE-LEVEL CALCULATIONS (Happens before money hits the entity)
     total_gross = (inputs.consulting_rev + inputs.dividends + 
                    inputs.bg_company_dividends + inputs.trading_profits)
+    
+    # Source Withholding on US/Intl Dividends
+    src_us_withholding = inputs.dividends * inputs.us_withholding_rate if inputs.is_us_dividend else 0.0
+    src_intl_div_tax = 0.0 if inputs.is_us_dividend else inputs.dividends * inputs.bg_dividend_tax
+    
+    # Source Withholding on Local BG Company Dividends
+    src_bg_subsidiary_wht = inputs.bg_company_dividends * inputs.bg_dividend_tax
 
-    # --- MODEL A: WYOMING LLC ---
-    # Strategy I
+    # --- MODEL A: WYOMING LLC (Pass-Through) ---
+    # Strategy I logic
     taxable_consulting_annual_llc = inputs.consulting_rev * (1 - inputs.statutory_deduction_consulting)
     taxable_consulting_monthly_llc = taxable_consulting_annual_llc / 12
     monthly_gap_llc = max(0, inputs.max_soc_sec_cap - inputs.md_salary)
@@ -84,35 +92,29 @@ def calculate_taxes(inputs: TaxInputs) -> TaxResults:
     soc_sec_due_llc = soc_sec_taxable_monthly_llc * 12 * inputs.soc_sec_rate
     consulting_tax_llc = taxable_consulting_annual_llc * inputs.bg_income_tax
     
-    # Strategy II
-    bg_subsidiary_wht_llc = inputs.bg_company_dividends * inputs.bg_dividend_tax
-    
-    # Other LLC
-    us_withholding_llc = inputs.dividends * inputs.us_withholding_rate if inputs.is_us_dividend else 0.0
-    intl_dividend_tax_llc = 0.0 if inputs.is_us_dividend else inputs.dividends * inputs.bg_dividend_tax
+    # Strategy II & Passive
     trading_tax_llc = (0.0 if inputs.is_eu_trading else 
                        (inputs.trading_profits * (1 - inputs.statutory_deduction_trading)) * inputs.bg_income_tax)
 
-    total_tax_llc = soc_sec_due_llc + consulting_tax_llc + us_withholding_llc + intl_dividend_tax_llc + bg_subsidiary_wht_llc + trading_tax_llc
+    total_tax_llc = (soc_sec_due_llc + consulting_tax_llc + 
+                     src_us_withholding + src_intl_div_tax + 
+                     src_bg_subsidiary_wht + trading_tax_llc)
     net_wealth_llc = total_gross - total_tax_llc - inputs.llc_expenses
 
-    # --- MODEL B: BVI COMPANY ---
-    # Strategy I CIT contribution
+    # --- MODEL B: BVI COMPANY (Corporate Blocker) ---
+    # Strategy I CIT risk (POEM)
     consulting_cit_bvi = 0.0 if inputs.solve_management_risk else (inputs.consulting_rev * inputs.bg_income_tax)
     
-    # Strategy II
-    bg_subsidiary_wht_bvi = inputs.bg_company_dividends * inputs.bg_dividend_tax
-    
-    # Entity-wide CIT
-    us_withholding_bvi = inputs.dividends * inputs.us_withholding_rate if inputs.is_us_dividend else 0.0
-    pre_tax_profit_bvi = total_gross - us_withholding_bvi - bg_subsidiary_wht_bvi - inputs.bvi_expenses
+    # Entity-wide Corporate Income Tax
+    pre_tax_profit_bvi = total_gross - src_us_withholding - src_bg_subsidiary_wht - inputs.bvi_expenses
     corporate_tax_bvi = 0.0 if inputs.solve_management_risk else max(0, pre_tax_profit_bvi * inputs.bg_income_tax)
     
+    # Distribution/Payout logic
     net_retained_bvi = pre_tax_profit_bvi - corporate_tax_bvi
     payout_amount_bvi = max(0, net_retained_bvi * (inputs.bvi_payout_ratio / 100.0))
     bg_dividend_tax_bvi = payout_amount_bvi * inputs.bg_dividend_tax
     
-    total_tax_bvi = us_withholding_bvi + bg_subsidiary_wht_bvi + corporate_tax_bvi + bg_dividend_tax_bvi
+    total_tax_bvi = src_us_withholding + src_bg_subsidiary_wht + corporate_tax_bvi + bg_dividend_tax_bvi
     trapped_in_bvi = max(0, net_retained_bvi - payout_amount_bvi)
     personal_wealth_bvi = payout_amount_bvi - bg_dividend_tax_bvi
     total_net_wealth_bvi = trapped_in_bvi + personal_wealth_bvi
@@ -122,7 +124,6 @@ def calculate_taxes(inputs: TaxInputs) -> TaxResults:
     privacy_bvi = "HIGH (Shielded)" if inputs.solve_management_risk else "MODERATE (POEM Trail)"
 
     if inputs.bg_company_dividends > 0:
-        # Strategy II breaks Strategy I's privacy
         privacy_llc = "[red]LOW (UBO Disclosure)[/red]"
         privacy_bvi = "[red]LOW (UBO Disclosure)[/red]"
 
@@ -131,8 +132,8 @@ def calculate_taxes(inputs: TaxInputs) -> TaxResults:
         consulting_tax_llc=consulting_tax_llc,
         soc_sec_due_llc=soc_sec_due_llc,
         consulting_cit_bvi=consulting_cit_bvi,
-        bg_subsidiary_wht_llc=bg_subsidiary_wht_llc,
-        bg_subsidiary_wht_bvi=bg_subsidiary_wht_bvi,
+        bg_subsidiary_wht_llc=src_bg_subsidiary_wht,
+        bg_subsidiary_wht_bvi=src_bg_subsidiary_wht,
         total_tax_llc=total_tax_llc,
         net_wealth_llc=net_wealth_llc,
         privacy_llc=privacy_llc,
@@ -142,8 +143,8 @@ def calculate_taxes(inputs: TaxInputs) -> TaxResults:
         total_net_wealth_bvi=total_net_wealth_bvi,
         privacy_bvi=privacy_bvi,
         trading_tax_llc=trading_tax_llc,
-        intl_div_tax_llc=intl_dividend_tax_llc + us_withholding_llc,
-        us_withholding_bvi=us_withholding_bvi,
+        intl_div_tax_llc=src_intl_div_tax + src_us_withholding,
+        us_withholding_bvi=src_us_withholding,
         corporate_tax_bvi=corporate_tax_bvi,
         payout_amount_bvi=payout_amount_bvi,
         bg_dividend_tax_bvi=bg_dividend_tax_bvi,
