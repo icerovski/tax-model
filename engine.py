@@ -1,3 +1,13 @@
+"""
+engine.py: Mathematical Core & Tax Logic
+----------------------------------------
+This module contains the stateless logic for the Global Entity Tax Model. 
+It defines the data structures for inputs and results, and implements the 
+tax calculations for both Wyoming LLC (Pass-Through) and BVI Company 
+(Corporate Blocker) structures, including specific protocols for Bulgarian 
+social security shields and privacy impacts.
+"""
+
 from dataclasses import dataclass, field
 from typing import Dict, Any
 
