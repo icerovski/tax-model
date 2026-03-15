@@ -1,7 +1,14 @@
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, VerticalScroll
 from textual.widgets import Header, Footer, Input, Label, Static, Checkbox, DataTable
 from textual.reactive import reactive
+
+from engine import (
+    TaxInputs, TaxResults, calculate_taxes,
+    BG_INCOME_TAX, BG_DIVIDEND_TAX, MAX_SOC_SEC_CAP, 
+    STATUTORY_DEDUCTION_CONSULTING, STATUTORY_DEDUCTION_TRADING, SOC_SEC_RATE,
+    US_WITHHOLDING_RATE
+)
 
 class TaxCalculator(App):
     """A Textual TUI for the Bulgarian Global Entity Tax Model."""
@@ -14,11 +21,14 @@ class TaxCalculator(App):
         width: 30%;
         padding: 1;
         border: solid green;
+        overflow-x: auto;
+        scrollbar-size: 1 1;
     }
     #results-pane {
         width: 70%;
         padding: 1;
         border: solid blue;
+        scrollbar-size: 1 1;
     }
     .input-group {
         margin-bottom: 1;
@@ -26,6 +36,7 @@ class TaxCalculator(App):
     Label {
         margin-top: 1;
         text-style: bold;
+        width: auto;
     }
     #explanation {
         margin-top: 2;
@@ -36,7 +47,7 @@ class TaxCalculator(App):
     }
     """
 
-    # General Reactive variables
+    # Reactive variables tied to inputs
     md_salary = reactive(5000.0)
     consulting_rev = reactive(150000.0)
     dividends = reactive(20000.0)
@@ -46,60 +57,59 @@ class TaxCalculator(App):
     is_eu_trading = reactive(False)
     client_withholds = reactive(True)
     llc_expenses = reactive(1200.0)
-
-    # BVI Specific Reactive variables
     bvi_expenses = reactive(2500.0)
-    bvi_payout_ratio = reactive(0.0) # Percentage 0-100
+    bvi_payout_ratio = reactive(0.0)
     solve_management_risk = reactive(True)
 
-    # Constants (2026 Euro)
-    BG_INCOME_TAX = 0.10
-    BG_DIVIDEND_TAX = 0.05
-    STATUTORY_DEDUCTION_CONSULTING = 0.25
-    STATUTORY_DEDUCTION_TRADING = 0.10
-    MAX_SOC_SEC_CAP = 2352.0  # Using the later 2026 figure
-    SOC_SEC_RATE = 0.278
+    # Dynamic Policy parameters
+    max_soc_sec_cap = reactive(MAX_SOC_SEC_CAP)
+    is_bg_tax_resident = reactive(True)
 
     def compose(self) -> ComposeResult:
         yield Header()
         with Container():
             with VerticalScroll():
-                yield Label("REVENUE & INCOME (COMMON)")
-                yield Label("Monthly MD Salary (€)")
-                yield Input(value=str(self.md_salary), id="md_salary", type="number")
+                yield Label("I. CONSULTING CONTRACT (BG CLIENT)")
                 yield Label("Annual Consulting Revenue (€)")
                 yield Input(value=str(self.consulting_rev), id="consulting_rev", type="number")
-                yield Label("Annual Dividends (US/Intl) (€)")
-                yield Input(value=str(self.dividends), id="dividends", type="number")
+                yield Checkbox("BG Client Withholds 10% (LLC Credit)", value=self.client_withholds, id="client_withholds")
+                yield Checkbox("BVI Management Risk Solved (0% BG CIT)", value=self.solve_management_risk, id="solve_management_risk")
+                
+                yield Label("II. BULGARIAN SUBSIDIARY")
                 yield Label("Annual BG Company Dividends (€)")
                 yield Input(value=str(self.bg_company_dividends), id="bg_company_dividends", type="number")
+
+                yield Label("III. GLOBAL INVESTMENTS & PERSONAL")
+                yield Label("Monthly MD Salary (€) (Tax Shield)")
+                yield Input(value=str(self.md_salary), id="md_salary", type="number")
+                yield Label("Annual Dividends (US/Intl) (€)")
+                yield Input(value=str(self.dividends), id="dividends", type="number")
+                yield Checkbox("US Sourced Dividends (15% US Tax)", value=self.is_us_dividend, id="is_us_dividend")
                 yield Label("Annual Trading Profits (€)")
                 yield Input(value=str(self.trading_profits), id="trading_profits", type="number")
-                
-                yield Label("WYOMING LLC PARAMETERS")
+                yield Checkbox("EU/EEA Regulated (0% Tax)", value=self.is_eu_trading, id="is_eu_trading")
+
+                yield Label("IV. STRUCTURE OVERHEAD & POLICY")
                 yield Label("LLC Annual Expenses (€)")
                 yield Input(value=str(self.llc_expenses), id="llc_expenses", type="number")
-
-                yield Label("BVI COMPANY PARAMETERS")
                 yield Label("BVI Annual Expenses (€)")
                 yield Input(value=str(self.bvi_expenses), id="bvi_expenses", type="number")
                 yield Label("BVI Dividend Payout Ratio (%)")
                 yield Input(value=str(self.bvi_payout_ratio), id="bvi_payout_ratio", type="number")
+                yield Label("SOC Security Cap (€ / mo)")
+                yield Input(value=str(self.max_soc_sec_cap), id="max_soc_sec_cap", type="number")
+                yield Checkbox("BG Tax Resident", value=self.is_bg_tax_resident, id="is_bg_tax_resident")
 
-                yield Label("OPTIONS")
-                yield Checkbox("US Sourced Dividends (15% US Withholding)", value=self.is_us_dividend, id="is_us_dividend")
-                yield Checkbox("EU/EEA Regulated Trading (0% Tax)", value=self.is_eu_trading, id="is_eu_trading")
-                yield Checkbox("BG Client Withholds 10%", value=self.client_withholds, id="client_withholds")
-                yield Checkbox("BVI Management Risk Solved (0% BG Corp Tax)", value=self.solve_management_risk, id="solve_management_risk")
-
-                yield Label("FIXED INFORMATION (2026)")
-                yield Static(f"• Income Tax Rate: {self.BG_INCOME_TAX*100}%")
-                yield Static(f"• Dividend Tax Rate: {self.BG_DIVIDEND_TAX*100}%")
-                yield Static(f"• Social Security Cap: €{self.MAX_SOC_SEC_CAP}/mo")
-                yield Static(f"• Consulting Deduction: {self.STATUTORY_DEDUCTION_CONSULTING*100}%")
+                yield Label("FIXED POLICY INFORMATION (2026)")
+                yield Static(f"• BG Income Tax: {BG_INCOME_TAX*100:.0f}%")
+                yield Static(f"• BG Dividend Tax: {BG_DIVIDEND_TAX*100:.0f}%")
+                yield Static(f"• US Dividend Withholding: {US_WITHHOLDING_RATE*100:.0f}%")
+                yield Static(f"• Soc Sec Rate: {SOC_SEC_RATE*100:.1f}%")
+                yield Static(f"• Consulting Deduction: {STATUTORY_DEDUCTION_CONSULTING*100:.0f}%")
+                yield Static(f"• Trading Deduction: {STATUTORY_DEDUCTION_TRADING*100:.0f}%")
 
             with VerticalScroll(id="results-pane"):
-                yield Label("CALCULATION RESULTS: LLC vs BVI")
+                yield Label("STRATEGY COMPARISON: WYOMING LLC vs BVI COMPANY")
                 yield DataTable(id="results-table")
                 yield Static(id="explanation")
 
@@ -107,7 +117,7 @@ class TaxCalculator(App):
 
     def on_mount(self) -> None:
         table = self.query_one("#results-table", DataTable)
-        table.add_columns("Line Item", "Wyoming LLC (€)", "BVI Company (€)", "Explanation / Notes")
+        table.add_columns("Strategic Layer", "Wyoming LLC (€)", "BVI Company (€)", "Privacy Impact")
         self.update_calculations()
 
     def on_input_changed(self, event: Input.Changed) -> None:
@@ -129,135 +139,82 @@ class TaxCalculator(App):
                 self.bvi_expenses = val
             elif event.input.id == "bvi_payout_ratio":
                 self.bvi_payout_ratio = max(0.0, min(100.0, val))
+            elif event.input.id == "max_soc_sec_cap":
+                self.max_soc_sec_cap = max(0.0, val)
             self.update_calculations()
         except ValueError:
             pass
 
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
-        if event.checkbox.id == "is_us_dividend":
-            self.is_us_dividend = event.value
-        elif event.checkbox.id == "is_eu_trading":
-            self.is_eu_trading = event.value
-        elif event.checkbox.id == "client_withholds":
-            self.client_withholds = event.value
-        elif event.checkbox.id == "solve_management_risk":
-            self.solve_management_risk = event.value
-        self.update_calculations()
+        attr_name = event.checkbox.id
+        if attr_name and hasattr(self, attr_name):
+            setattr(self, attr_name, event.value)
+            self.update_calculations()
 
     def update_calculations(self) -> None:
-        # GROSS CALCULATION
-        total_gross = self.consulting_rev + self.dividends + self.bg_company_dividends + self.trading_profits
-
-        # --- MODEL A: WYOMING LLC (Flow-Through) ---
-        # 1. Social Security Check
-        taxable_consulting_annual_llc = self.consulting_rev * (1 - self.STATUTORY_DEDUCTION_CONSULTING)
-        taxable_consulting_monthly_llc = taxable_consulting_annual_llc / 12
-        monthly_gap_llc = max(0, self.MAX_SOC_SEC_CAP - self.md_salary)
-        soc_sec_taxable_monthly_llc = min(taxable_consulting_monthly_llc, monthly_gap_llc)
-        soc_sec_due_llc = soc_sec_taxable_monthly_llc * 12 * self.SOC_SEC_RATE
+        inputs = TaxInputs(
+            md_salary=self.md_salary,
+            consulting_rev=self.consulting_rev,
+            dividends=self.dividends,
+            bg_company_dividends=self.bg_company_dividends,
+            trading_profits=self.trading_profits,
+            is_us_dividend=self.is_us_dividend,
+            is_eu_trading=self.is_eu_trading,
+            client_withholds=self.client_withholds,
+            llc_expenses=self.llc_expenses,
+            bvi_expenses=self.bvi_expenses,
+            bvi_payout_ratio=self.bvi_payout_ratio,
+            solve_management_risk=self.solve_management_risk,
+            max_soc_sec_cap=self.max_soc_sec_cap,
+            is_bg_tax_resident=self.is_bg_tax_resident
+        )
         
-        # 2. Consulting Tax
-        consulting_tax_liability_llc = taxable_consulting_annual_llc * self.BG_INCOME_TAX
+        results = calculate_taxes(inputs)
+        self._update_ui(results)
 
-        # 3. Dividend Tax
-        us_withholding_llc = self.dividends * 0.15 if self.is_us_dividend else 0.0
-        intl_dividend_tax_llc = 0.0 if self.is_us_dividend else self.dividends * self.BG_DIVIDEND_TAX
-        bg_div_tax_withheld_llc = self.bg_company_dividends * self.BG_DIVIDEND_TAX
-        total_div_tax_llc = (us_withholding_llc if self.is_us_dividend else intl_dividend_tax_llc) + bg_div_tax_withheld_llc
-
-        # 4. Trading Tax
-        trading_tax_due_llc = 0.0 if self.is_eu_trading else (self.trading_profits * (1 - self.STATUTORY_DEDUCTION_TRADING)) * self.BG_INCOME_TAX
-
-        # Totals LLC
-        total_tax_llc = soc_sec_due_llc + consulting_tax_liability_llc + total_div_tax_llc + trading_tax_due_llc
-        total_expenses_llc = self.llc_expenses
-        net_wealth_llc = total_gross - total_tax_llc - total_expenses_llc
-        effective_rate_llc = (total_tax_llc / total_gross) * 100 if total_gross > 0 else 0
-
-
-        # --- MODEL B: BVI COMPANY (Corporate Blocker) ---
-        # "Place of Effective Management" (POEM) Logic
-        
-        # US/Intl Dividends Withholding at source (still happens to the BVI)
-        us_withholding_bvi = self.dividends * 0.15 if self.is_us_dividend else 0.0
-        # BG Dividends Withheld at source
-        bg_div_tax_withheld_bvi = self.bg_company_dividends * self.BG_DIVIDEND_TAX
-        
-        # Pre-Tax Corporate Net
-        pre_tax_profit_bvi = total_gross - us_withholding_bvi - bg_div_tax_withheld_bvi - self.bvi_expenses
-        
-        # Corporate level taxes
-        corporate_tax_bvi = 0.0 if self.solve_management_risk else max(0, pre_tax_profit_bvi * self.BG_INCOME_TAX)
-        soc_sec_due_bvi = 0.0 # Corporate revenue doesn't trigger BG Social Security
-        
-        # Net Profit Available for Distribution
-        net_retained_bvi = pre_tax_profit_bvi - corporate_tax_bvi
-        
-        # Distribution Logic
-        payout_amount_bvi = max(0, net_retained_bvi * (self.bvi_payout_ratio / 100.0))
-        bg_dividend_tax_bvi = payout_amount_bvi * self.BG_DIVIDEND_TAX
-        
-        # Totals BVI
-        total_tax_bvi = us_withholding_bvi + bg_div_tax_withheld_bvi + corporate_tax_bvi + bg_dividend_tax_bvi
-        total_expenses_bvi = self.bvi_expenses
-        trapped_in_bvi = max(0, net_retained_bvi - payout_amount_bvi)
-        personal_wealth_bvi = payout_amount_bvi - bg_dividend_tax_bvi
-        total_net_wealth_bvi = trapped_in_bvi + personal_wealth_bvi
-        effective_rate_bvi = (total_tax_bvi / total_gross) * 100 if total_gross > 0 else 0
-
-
-        # --- Privacy Logic ---
-        privacy_llc = "HIGH (Shielded)"
-        privacy_bvi = "HIGH (Shielded)" if self.solve_management_risk else "MODERATE (POEM Trail)"
-
-        if self.bg_company_dividends > 0:
-            privacy_llc = "[red]LOW (UBO Disclosed)[/red]"
-            privacy_bvi = "[red]LOW (UBO Disclosed)[/red]"
-
-        # --- Update Table ---
+    def _update_ui(self, results: TaxResults) -> None:
         table = self.query_one("#results-table", DataTable)
         table.clear()
+        
+        # Privacy Status Strings
+        privacy_consulting = "[green]HIGH (Private)[/green]"
+        privacy_subsidiary = "[red]LOW (UBO Registry)[/red]"
+        
         table.add_rows([
-            ("Gross Revenue", f"{total_gross:,.2f}", f"{total_gross:,.2f}", "Total structure inflows"),
-            ("Fixed Expenses", f"{total_expenses_llc:,.2f}", f"{total_expenses_bvi:,.2f}", "Agent / ES Filings / CPA"),
-            ("Social Security", f"{soc_sec_due_llc:,.2f}", f"{soc_sec_due_bvi:,.2f}", "LLC flows through to individual"),
-            ("Consulting Tax (BG)", f"{consulting_tax_liability_llc:,.2f}", "0.00", "LLC gets 25% deduction"),
-            ("BVI Corp Tax (BG)", "0.00", f"{corporate_tax_bvi:,.2f}", "10% CIT if Sofia-managed (POEM)"),
-            ("Trading Tax (BG)", f"{trading_tax_due_llc:,.2f}", "0.00", "LLC gets 10% deduction"),
-            ("Source Div Withholding", f"{total_div_tax_llc:,.2f}", f"{us_withholding_bvi + bg_div_tax_withheld_bvi:,.2f}", "Source taxes on dividends"),
-            ("Dividend Payout to BG", "N/A (Flow)", f"{payout_amount_bvi:,.2f}", f"BVI Payout Ratio: {self.bvi_payout_ratio}%"),
-            ("BG Dividend Tax", "0.00", f"{bg_dividend_tax_bvi:,.2f}", "5% Tax on distributed profits"),
-            ("Total Tax Burden", f"{total_tax_llc:,.2f}", f"{total_tax_bvi:,.2f}", "Combined tax paid/withheld"),
-            ("Net Tax Rate (%)", f"{effective_rate_llc:.2f}%", f"{effective_rate_bvi:.2f}%", "Total Tax / Total Gross"),
-            ("Anonymity Level", privacy_llc, privacy_bvi, "Public Registry Status"),
-            ("Wealth: Personal", f"{net_wealth_llc:,.2f}", f"{personal_wealth_bvi:,.2f}", "Post-tax wealth in BG account"),
-            ("Wealth: Corporate", "0.00", f"{trapped_in_bvi:,.2f}", "Untaxed funds retained in BVI"),
-            ("TOTAL NET WEALTH", f"{net_wealth_llc:,.2f}", f"{total_net_wealth_bvi:,.2f}", "Total wealth across all accounts")
+            ("[b]STRATEGY I: CONSULTING[/b]", "", "", ""),
+            ("  • Gross Revenue", f"{self.consulting_rev:,.2f}", f"{self.consulting_rev:,.2f}", privacy_consulting),
+            ("  • Consulting Tax (BG)", f"-{results.consulting_tax_llc:,.2f}", "0.00", "LLC personal tax"),
+            ("  • Social Security", f"-{results.soc_sec_due_llc:,.2f}", "0.00", "LLC personal cost"),
+            ("  • Corp Tax (Sofia-POEM)", "0.00", f"-{results.consulting_cit_bvi:,.2f}", "BVI Sofia-resident risk"),
+            
+            ("[b]STRATEGY II: SUBSIDIARY[/b]", "", "", ""),
+            ("  • Dividend Gross", f"{self.bg_company_dividends:,.2f}", f"{self.bg_company_dividends:,.2f}", privacy_subsidiary),
+            ("  • BG Source WHT (5%)", f"-{results.bg_subsidiary_wht_llc:,.2f}", f"-{results.bg_subsidiary_wht_bvi:,.2f}", "Taxed at source"),
+            
+            ("[b]GLOBAL / PASSIVE[/b]", "", "", ""),
+            ("  • Trading Profits", f"{self.trading_profits:,.2f}", f"{self.trading_profits:,.2f}", "Investment layer"),
+            ("  • Trading Tax", f"-{results.trading_tax_llc:,.2f}", "0.00", "10% on non-EEA profit"),
+            ("  • Intl Dividends (Net)", f"{self.dividends:,.2f}", f"{self.dividends:,.2f}", "Pre-entity taxes"),
+            ("  • Intl Div Tax (BG)", f"-{results.intl_div_tax_llc:,.2f}", "0.00", "BG personal tax"),
+            
+            ("[b]ENTITY SUMMARY[/b]", "", "", ""),
+            ("  • Annual Expenses", f"-{self.llc_expenses:,.2f}", f"-{self.bvi_expenses:,.2f}", "Fixed overhead"),
+            ("  • BVI Dist. Tax (5%)", "N/A", f"-{results.bg_dividend_tax_bvi:,.2f}", "Personal tax on payout"),
+            ("  • Net Tax Rate (%)", f"{results.effective_rate_llc:.2f}%", f"{results.effective_rate_bvi:.2f}%", "Total Tax / Gross"),
+            ("  • TOTAL NET WEALTH", f"[b]{results.net_wealth_llc:,.2f}[/b]", f"[b]{results.total_net_wealth_bvi:,.2f}[/b]", "Combined net Retained"),
+            ("  • FINAL PRIVACY", results.privacy_llc, results.privacy_bvi, "Global Structure Status")
         ])
 
-        # --- Update Explanation ---
-        winner = "Wyoming LLC" if net_wealth_llc > total_net_wealth_bvi else "BVI Company"
-        difference = abs(net_wealth_llc - total_net_wealth_bvi)
-
-        privacy_analysis = f"\n\n[b]PRIVACY & ANONYMITY ANALYSIS:[/b]\n"
-        if self.bg_company_dividends > 0:
-            privacy_analysis += "[red][b]CRITICAL BREACH:[/b][/red] Owning a BG subsidiary triggers mandatory [b]UBO disclosure[/b]. Your name will be publicly linked to this structure in the Sofia Commercial Register, breaking the Wyoming shield."
-        else:
-            privacy_analysis += f"• [green]Wyoming LLC:[/green] {privacy_llc}. No public member list; only the Registered Agent is visible.\n"
-            privacy_analysis += f"• [green]BVI Company:[/green] {privacy_bvi}. " + ("POEM risk solved." if self.solve_management_risk else "[yellow]Warning:[/yellow] Management from Sofia creates a local tax trail linking you to the BVI entity.")
-
-        management_risk_text = "[green]BVI management is non-resident.[/green]" if self.solve_management_risk else "[red]POEM TRAP:[/red] Management is Sofia-based. 10% CIT applies first, then 5% Dividend Tax."
-
+        winner = "Wyoming LLC" if results.net_wealth_llc > results.total_net_wealth_bvi else "BVI Company"
+        difference = abs(results.net_wealth_llc - results.total_net_wealth_bvi)
+        
         explanation = self.query_one("#explanation", Static)
         explanation.update(
-            f"[b]STRATEGIC ANALYSIS[/b]\n\n"
-            f"[b]Optimal Structure (Current Inputs):[/b] [green]{winner}[/green] by €{difference:,.2f}\n"
-            f"[b]Management Status:[/b] {management_risk_text}\n\n"
-            f"1. [b]The Compounding Advantage:[/b] By keeping the BVI Payout Ratio at {self.bvi_payout_ratio}%, you trap €{trapped_in_bvi:,.2f} in a 0% tax environment for reinvestment. Wyoming forces immediate taxation on all revenue.\n"
-            f"2. [b]The Consulting Penalty:[/b] Wyoming benefits from the 25% statutory deduction on consulting revenue (€{consulting_tax_liability_llc:,.2f} tax vs 5% on pure distribution). The BVI lacks this personal tax shield.\n"
-            f"3. [b]The Social Security Factor:[/b] Your MD Salary shields €{self.md_salary:,.2f}/mo. You pay €{soc_sec_due_llc:,.2f} in Wyoming vs €0 in BVI.\n"
-            f"4. [b]Compliance Drag:[/b] The BVI costs €{total_expenses_bvi:,.2f} vs Wyoming's €{total_expenses_llc:,.2f}, eroding small tax advantages."
-            f"{privacy_analysis}"
+            f"[b]STRATEGIC SUMMARY[/b]\n\n"
+            f"• [b]Tax Winner:[/b] [green]{winner}[/green] by €{difference:,.2f}\n"
+            f"• [b]Strategy I Impact:[/b] The LLC wins on consulting if you have an MD salary shield. The BVI is only better if you need to 'trap' profits offshore.\n"
+            f"• [b]Strategy II Impact:[/b] Owning a BG subsidiary triggers [red]UBO Disclosure[/red]. This links your name to the structure, making the 'Privacy Shield' irrelevant for [i]both[/i] consulting and dividends.\n"
+            f"• [b]The POEM Trap:[/b] If BVI management isn't solved, Strategy I incurs 10% CIT first, then 5% Div Tax, making it the most expensive option."
         )
 
 if __name__ == "__main__":

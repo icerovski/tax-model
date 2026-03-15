@@ -19,8 +19,16 @@
 
 ## Technical Architecture
 - **`main.py`**: Application entry point.
-- **`calculator.py`**: Interactive TUI (Textual) for financial modeling, side-by-side structure comparison, and tax set-aside calculations.
+- **`engine.py`**: Stateless core logic. Calculates taxes based on two primary tracks:
+    - **Strategy I (Consulting)**: Service contract logic with social security shields.
+    - **Strategy II (Subsidiary)**: Ownership logic with UBO disclosure triggers.
+- **`calculator.py`**: Interactive TUI (Textual). Restructured to group inputs and results by strategic layer (Consulting vs. Subsidiary).
 - **`pyproject.toml`**: Dependency management (uv).
+
+## Strategic Logic Protocols
+1. **The Privacy Breaker**: Any non-zero input in "Bulgarian Subsidiary" (Strategy II) automatically downgrades the Privacy status of the entire entity from HIGH to LOW, regardless of Registered Agent shields.
+2. **The MD Shield**: Social security for LLC consulting is calculated by applying the 27.8% rate only to the "Gap" between the MD Salary and the monthly cap (€2,352).
+3. **The POEM Trap**: BVI structures are modeled with a 10% CIT risk if management risk is not explicitly marked as "Solved".
 
 ## Objective
 Maintain and expand an interactive financial model that compares the true net retained wealth between different international corporate structures (e.g., Wyoming LLC vs. BVI Company) while ensuring maximum public anonymity.
