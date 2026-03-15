@@ -1,25 +1,29 @@
 # Request for Professional Tax Advice: Bulgaria
-**Project:** Global Entity Strategy (Wyoming LLC vs. BVI Company)
+**Project:** Global Entity Strategy (Wyoming/Delaware LLC vs. BVI Company)
 **Profile:** Managing Director (PE Fund), Bulgarian Tax Resident (Sofia).
 
 ---
 
 ## 1. Background
-The client is a Bulgarian tax resident with a high primary salary from a PE fund. He intends to utilize a foreign entity (Wyoming LLC or BVI Co) for consulting services provided to Bulgarian clients, as well as for global trading and international dividend income.
+I am a Bulgarian tax resident with a high primary salary from a PE fund. My intention is to incorporate a Single-Member LLC in Wyoming or Delaware (or alternatively, a BVI Company) to provide consulting services to a Bulgarian client, as well as for global trading and international dividend income. While the entity will perform these services initially, later on it might seek to invest directly in a business in the USA.
+
+**The Specific Consulting Service:** The foreign entity will provide highly specialized market intelligence and research on the **US PV/BESS (Photovoltaic / Battery Energy Storage Systems) market** to the Bulgarian client. All actual analytical work will be performed by me while physically located in Bulgaria.
 
 ## 2. Scope of Inquiry: Strategy I (Consulting Contract)
-We assume that consulting income received via a **Wyoming LLC (Single-Member, Disregarded)** is taxed as personal income in Bulgaria.
+I assume that consulting income received via a **Wyoming/Delaware LLC (Single-Member, Disregarded)** is taxed as personal income in Bulgaria.
 *   **Premise A:** The income is eligible for a **25% statutory deduction** (Expenses for activity) before applying the 10% flat tax. Please confirm if this applies to non-registered freelance-equivalent income from a US LLC.
-*   **Premise B:** **Social Security contributions** are capped at the 2026 ceiling (€2,352/mo). If the client’s primary MD salary already exceeds this cap, zero additional social security is due on the LLC consulting income. Please verify this "Salary Shield" logic.
+*   **Premise B:** **Social Security contributions** are capped at the 2026 ceiling (€2,352/mo). If my primary MD salary already exceeds this cap, zero additional social security is due on the LLC consulting income. Please verify this "Salary Shield" logic.
 *   **Premise C:** The 10% withholding tax applied by the Bulgarian client at source acts as a tax credit against the final PIT liability. Please confirm the procedural steps for this credit.
+*   **Commercial Substance:** Please confirm that using a US-domiciled entity to bill a Bulgarian client specifically for "US PV/BESS Market Research" provides a strong commercial justification (substance) that mitigates NRA scrutiny regarding hidden employment or sham structuring.
+*   **Future Investment:** Please advise if the LLC's future direct investment in a US business would affect its tax treatment in Bulgaria regarding the consulting and trading income.
 
 ## 3. Scope of Inquiry: Strategy II (Place of Effective Management - POEM)
-We are modeling a **BVI Company** used for the same consulting services.
-*   **Risk A:** If the client makes all management decisions from Sofia, does the BVI entity trigger a "Place of Effective Management" risk under Bulgarian law, making it liable for **10% Corporate Income Tax (CIT)** in Bulgaria?
+I am also modeling a **BVI Company** used for the same consulting services.
+*   **Risk A:** If I make all management decisions from Sofia, does the BVI entity trigger a "Place of Effective Management" risk under Bulgarian law, making it liable for **10% Corporate Income Tax (CIT)** in Bulgaria?
 *   **Risk B:** If POEM is triggered, please confirm that subsequent distributions would still incur the **5% Bulgarian Dividend Tax**.
 
 ## 4. Scope of Inquiry: Strategy III (Bulgarian Subsidiary)
-*   **Disclosure:** Confirm that owning a Bulgarian operational company through a Wyoming LLC or BVI structure triggers mandatory **UBO Disclosure** in the Commercial Register, breaking the entity's anonymity.
+*   **Disclosure:** Confirm that owning a Bulgarian operational company through a Wyoming/Delaware LLC or BVI structure triggers mandatory **UBO Disclosure** in the Commercial Register, breaking the entity's anonymity.
 *   **Withholding:** Confirm the 5% withholding rate on dividends paid from a BG subsidiary to a US LLC vs. a BVI entity.
 
 ## 5. Deliverables

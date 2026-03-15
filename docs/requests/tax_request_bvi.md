@@ -5,11 +5,13 @@
 ---
 
 ## 1. Background
-The client intends to incorporate a BVI Business Company to provide consulting services globally and hold investment portfolios. The client is a tax resident of Bulgaria.
+My intention is to incorporate a BVI Business Company (as an alternative to a US LLC) to provide consulting services globally and hold investment portfolios. I am a tax resident of Bulgaria. While the entity will perform these services initially, later on it might seek to invest directly in a business in the USA.
+
+**The Specific Consulting Service:** The entity will be contracted by a European client to provide specialized market intelligence and research on the **US PV/BESS (Photovoltaic / Battery Energy Storage Systems) market**. All actual analytical work will be performed by me while physically located in Bulgaria.
 
 ## 2. Scope of Inquiry: Economic Substance (ES) Act
 The BVI Economic Substance (Companies and Limited Partnerships) Act requires entities carrying on "Relevant Activities" to have substance in the BVI.
-*   **Classification:** Does "Consulting Services" provided by a Single-Member BVI Co fall under any of the nine relevant activities (specifically **'Service Centre Business'** or **'Headquartering Business'**)? 
+*   **Classification:** Does "Consulting Services" (specifically US PV/BESS market research) provided by a Single-Member BVI Co fall under any of the nine relevant activities (specifically **'Service Centre Business'** or **'Headquartering Business'**)? 
 *   **Compliance:** If it is a relevant activity, what are the minimum local substance requirements (office, staff, expenditure) to avoid penalties?
 *   **Non-Relevant Status:** If the consulting is deemed a non-relevant activity, confirm that 0% corporate tax applies with no local substance requirement.
 
@@ -19,7 +21,7 @@ The BVI Economic Substance (Companies and Limited Partnerships) Act requires ent
 
 ## 4. Scope of Inquiry: Maintenance & POEM
 *   **Costs:** Provide an estimate of annual government fees, Registered Agent fees, and ES filing fees for 2026.
-*   **POEM Mitigation:** Given the client resides in Sofia, what measures can be taken to mitigate the risk of the Bulgarian NRA claiming the BVI Co has its "Place of Effective Management" in Bulgaria?
+*   **POEM Mitigation:** Given I reside in Sofia, what measures can be taken to mitigate the risk of the Bulgarian NRA claiming the BVI Co has its "Place of Effective Management" in Bulgaria?
 
 ## 5. Deliverables
 An assessment of the BVI Co's compliance obligations under the ES Act and a clear summary of the automatic information exchange triggers between the BVI and Bulgaria.
