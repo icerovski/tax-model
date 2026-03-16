@@ -5,13 +5,13 @@
 ---
 
 ## 1. Background
-My intention is to incorporate a BVI Business Company (as an alternative to a US LLC) to provide consulting services globally and hold investment portfolios. I am a tax resident of Bulgaria. While the entity will perform these services initially, later on it might seek to invest directly in a business in the USA.
+My intention is to incorporate a BVI Business Company (as an alternative to a US LLC) to provide consulting services globally and hold investment portfolios funded by the consulting profits. I am a tax resident of Bulgaria. While the entity will perform these services initially, later on I might consider using it to buy a business in the USA.
 
-**The Specific Consulting Service:** The entity will be contracted by a European client to provide specialized market intelligence and research on the **US PV/BESS (Photovoltaic / Battery Energy Storage Systems) market**. All actual analytical work will be performed by me while physically located in Bulgaria.
+**The Specific Consulting Service:** The entity will contract with a European client to provide market research on the **US PV/BESS (Photovoltaic / Battery Energy Storage Systems) sector** and help source European clients and assets for other European traders. All the actual work will be done by me remotely from Bulgaria.
 
 ## 2. Scope of Inquiry: Economic Substance (ES) Act
 The BVI Economic Substance (Companies and Limited Partnerships) Act requires entities carrying on "Relevant Activities" to have substance in the BVI.
-*   **Classification:** Does "Consulting Services" (specifically US PV/BESS market research) provided by a Single-Member BVI Co fall under any of the nine relevant activities (specifically **'Service Centre Business'** or **'Headquartering Business'**)? 
+*   **Classification:** Does providing consulting services—specifically market research and client sourcing for traders—via a Single-Member BVI Co fall under any of the nine relevant activities (specifically **'Service Centre Business'** or **'Headquartering Business'**)? 
 *   **Compliance:** If it is a relevant activity, what are the minimum local substance requirements (office, staff, expenditure) to avoid penalties?
 *   **Non-Relevant Status:** If the consulting is deemed a non-relevant activity, confirm that 0% corporate tax applies with no local substance requirement.
 
