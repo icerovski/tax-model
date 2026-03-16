@@ -80,6 +80,8 @@ class TaxResults:
     bg_dividend_tax_bvi: float
     effective_rate_llc: float
     effective_rate_bvi: float
+    vat_status_llc: str = "Reverse Charge (0%)"
+    vat_status_bvi: str = "Reverse Charge (0%)"
 
 def calculate_taxes(inputs: TaxInputs) -> TaxResults:
     # 1. SHARED SOURCE-LEVEL CALCULATIONS (Happens before money hits the entity)

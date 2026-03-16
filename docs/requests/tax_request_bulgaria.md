@@ -26,5 +26,10 @@ I am also modeling a **BVI Company** used for the same consulting services.
 *   **Disclosure:** Confirm that owning a Bulgarian operational company through a Wyoming/Delaware LLC or BVI structure triggers mandatory **UBO Disclosure** in the Commercial Register, breaking the entity's anonymity.
 *   **Withholding:** Confirm the 5% withholding rate on dividends paid from a BG subsidiary to a US LLC vs. a BVI entity.
 
-## 5. Deliverables
+## 5. Scope of Inquiry: Strategy IV (VAT & Compliance)
+*   **Reverse Charge:** Confirm that services provided by a Wyoming LLC (non-EU entity) to a Bulgarian company (B2B) are subject to Reverse Charge under Art. 82, para 2, p. 3 of ZVAT, and that the LLC itself is NOT required to register for VAT in Bulgaria regardless of turnover.
+*   **Personal Registration:** Confirm that I, as a physical person, do not need to register for VAT personally for the income "draws" from the LLC, as this is a distribution of profit and not a taxable supply of services.
+*   **Fixed Establishment Risk:** Given that I perform the work from Sofia, please assess the risk of the NRA classifying the LLC as having a "Fixed Establishment" (postoyanen obekt) in Bulgaria for VAT purposes. What are the practical triggers for this, and how can it be mitigated?
+
+## 6. Deliverables
 A written memorandum confirming the validity of these premises and identifying any specific 2026 regulatory changes (post-Euro transition) that impact these calculations.

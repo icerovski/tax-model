@@ -145,6 +145,13 @@ class TaxCalculator(App):
         border: round $accent;
         height: auto;
     }
+    #compliance-checklist {
+        margin-top: 1;
+        padding: 1;
+        background: $boost;
+        border: double $secondary;
+        height: auto;
+    }
     """
 
     def __init__(self, **kwargs):
@@ -200,6 +207,8 @@ class TaxCalculator(App):
                 yield Label("STRATEGY COMPARISON: WYOMING LLC vs BVI COMPANY")
                 yield DataTable(id="results-table")
                 yield Static(id="explanation")
+                yield Label("VAT & COMPLIANCE CHECKLIST")
+                yield Static(id="compliance-checklist")
 
         yield Footer()
 
@@ -293,6 +302,19 @@ class TaxCalculator(App):
             f"• [b]Strategy II Impact:[/b] Owning a BG subsidiary triggers [red]UBO Disclosure[/red]. This links your name to the structure, making the 'Privacy Shield' irrelevant for [i]both[/i] consulting and dividends.\n"
             f"• [b]The POEM Trap:[/b] If BVI management isn't solved, Strategy I incurs 10% CIT first, then 5% Div Tax, making it the most expensive option.\n"
             f"• [b]Pro Tip:[/b] Press [b]Ctrl+S[/b] for a Strategic Comparison Verdict."
+        )
+
+        checklist = self.query_one("#compliance-checklist", Static)
+        checklist.update(
+            "[b]Invoicing Checklist (B2B to Bulgaria):[/b]\n"
+            "  [green]ü[/green] Provider: Wyoming LLC (US Address / EIN)\n"
+            "  [green]ü[/green] VAT Amount: 0.00 (0%)\n"
+            "  [green]ü[/green] [b]Mandatory Note:[/b] [i]\"Reverse Charge - Art. 82, para 2, p. 3 of ZVAT\"[/i]\n"
+            "  [green]ü[/green] Recipient: BG Company (EIK / VAT Number)\n\n"
+            "[b]Why NO personal VAT registration?[/b]\n"
+            "  1. [i]Legal Person Separation:[/i] The LLC is the taxable person for VAT, not you.\n"
+            "  2. [i]Reverse Charge:[/i] The BG client is responsible for charging the VAT.\n"
+            "  3. [i]Draws != Services:[/i] Moving profit from LLC to you is NOT a taxable supply."
         )
 
 if __name__ == "__main__":
