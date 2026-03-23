@@ -34,6 +34,7 @@ class TaxInputs:
     bvi_expenses: float = 2500.0
     bvi_payout_ratio: float = 0.0  # Percentage 0-100
     solve_management_risk: bool = True
+    is_etbus: bool = False  # If True, LLC is taxed at 21% US Corp Tax
 
     # Optional policy parameters
     bg_income_tax: float = BG_INCOME_TAX
@@ -80,6 +81,7 @@ class TaxResults:
     bg_dividend_tax_bvi: float
     effective_rate_llc: float
     effective_rate_bvi: float
+    us_corp_tax_llc: float = 0.0
     vat_status_llc: str = "Reverse Charge (0%)"
     vat_status_bvi: str = "Reverse Charge (0%)"
 
@@ -108,9 +110,13 @@ def calculate_taxes(inputs: TaxInputs) -> TaxResults:
     trading_tax_llc = (0.0 if inputs.is_eu_trading else 
                        (inputs.trading_profits * (1 - inputs.statutory_deduction_trading)) * inputs.bg_income_tax)
 
+    # US Regulatory Nexus Risk (ETBUS)
+    # If ETBUS, LLC pays 21% US Corp Tax on consulting revenue before it hits personal income
+    us_corp_tax_llc = inputs.consulting_rev * 0.21 if inputs.is_etbus else 0.0
+
     total_tax_llc = (soc_sec_due_llc + consulting_tax_llc + 
                      src_us_withholding + src_intl_div_tax + 
-                     src_bg_subsidiary_wht + trading_tax_llc)
+                     src_bg_subsidiary_wht + trading_tax_llc + us_corp_tax_llc)
     net_wealth_llc = total_gross - total_tax_llc - inputs.llc_expenses
 
     # --- MODEL B: BVI COMPANY (Corporate Blocker) ---

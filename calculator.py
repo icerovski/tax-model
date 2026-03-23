@@ -168,6 +168,7 @@ class TaxCalculator(App):
                 yield Label("Annual Consulting Revenue (€)")
                 yield Input(value=str(self.inputs.consulting_rev), id="consulting_rev", type="number")
                 yield Checkbox("BG Client Withholds 10% (LLC Credit)", value=self.inputs.client_withholds, id="client_withholds")
+                yield Checkbox("US Regulatory Nexus (21% US Corp Tax)", value=self.inputs.is_etbus, id="is_etbus")
                 yield Checkbox("BVI Management Risk Solved (0% BG CIT)", value=self.inputs.solve_management_risk, id="solve_management_risk")
                 
                 yield Label("II. BULGARIAN SUBSIDIARY")
@@ -271,6 +272,7 @@ class TaxCalculator(App):
             ("  • Gross Revenue", f"{self.inputs.consulting_rev:,.2f}", f"{self.inputs.consulting_rev:,.2f}", privacy_consulting),
             ("  • Consulting Tax (BG)", f"-{results.consulting_tax_llc:,.2f}", "0.00", "LLC personal tax"),
             ("  • Social Security", f"-{results.soc_sec_due_llc:,.2f}", "0.00", "LLC personal cost"),
+            ("  • US Corp Tax (ETBUS)", f"-{results.us_corp_tax_llc:,.2f}", "0.00", "Regulatory Nexus Risk"),
             ("  • Corp Tax (Sofia-POEM)", "0.00", f"-{results.consulting_cit_bvi:,.2f}", "BVI Sofia-resident risk"),
             
             ("[b]STRATEGY II: SUBSIDIARY[/b]", "", "", ""),
@@ -299,6 +301,7 @@ class TaxCalculator(App):
             f"[b]STRATEGIC SUMMARY[/b]\n\n"
             f"• [b]Tax Winner:[/b] [green]{winner}[/green] by €{difference:,.2f}\n"
             f"• [b]Strategy I Impact:[/b] The LLC wins on consulting if you have an MD salary shield. The BVI is only better if you need to 'trap' profits offshore.\n"
+            f"• [b]US Regulatory Nexus:[/b] If the LLC is deemed [red]ETBUS[/red] due to regulatory registration (Broker/Adviser), it pays [b]21% US Corp Tax[/b] first, destroying the tax advantage.\n"
             f"• [b]Strategy II Impact:[/b] Owning a BG subsidiary triggers [red]UBO Disclosure[/red]. This links your name to the structure, making the 'Privacy Shield' irrelevant for [i]both[/i] consulting and dividends.\n"
             f"• [b]The POEM Trap:[/b] If BVI management isn't solved, Strategy I incurs 10% CIT first, then 5% Div Tax, making it the most expensive option.\n"
             f"• [b]Pro Tip:[/b] Press [b]Ctrl+S[/b] for a Strategic Comparison Verdict."
