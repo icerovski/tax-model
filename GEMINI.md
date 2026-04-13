@@ -17,6 +17,13 @@
 - **Social Security (BVI Company):** €0 (Corporate dividends do not trigger BG social security).
 - **VAT:** 0% invoiced by the entities. The Bulgarian client applies the "Reverse Charge" mechanism.
 
+## Advisor's Reality Check (March 2026 Update)
+Based on professional advice from Lyubomir Tabakov, the following risks must be integrated into the model:
+1.  **The PE Trap:** A single-member US LLC managed from Sofia is highly likely to be classified as having a **Permanent Establishment (PE)** in Bulgaria, subjecting it to **10% Corporate Income Tax (CIT)**.
+2.  **Statutory Deduction Loss:** The 25% freelancer deduction is likely **not applicable** to income invoiced by a US LLC, as the NRA treats the LLC as a separate legal entity.
+3.  **VAT Fixed Establishment:** Active management from Sofia creates a "Fixed Establishment" risk, potentially requiring the US LLC to **register for Bulgarian VAT** and charge 20% VAT.
+4.  **POEM Shield:** Using a US-based Professional Manager to sign contracts and manage distributions is a critical mitigation strategy to avoid the Bulgarian PE classification.
+
 ## Technical Architecture
 - **`main.py`**: Application entry point.
 - **`engine.py`**: Stateless core logic. Uses a mutable `TaxInputs` dataclass as the single source of truth for entity parameters. Calculates taxes based on two primary tracks:
